@@ -1,4 +1,4 @@
-import { CheckCircle2, Dumbbell, Plus, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
@@ -10,20 +10,33 @@ import { XiaotieTip } from "../features/xiaotie/XiaotieTip";
 import { getExerciseDetail } from "../services/tieziApi";
 import { useWorkoutStore } from "../stores/workoutStore";
 
-function ListSection({ title, items, tone = "default" }: { title: string; items: string[]; tone?: "default" | "safe" | "warning" }) {
-  const iconClass = tone === "warning" ? "text-coral" : tone === "safe" ? "text-mint" : "text-ocean";
+function BodyMap() {
   return (
-    <Card>
-      <h2 className="mb-3 text-base font-black">{title}</h2>
-      <div className="space-y-3">
-        {items.map((item, index) => (
-          <div key={item} className="flex gap-3">
-            <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-paper text-xs font-black ${iconClass}`}>{index + 1}</span>
-            <p className="text-sm font-semibold leading-6 text-muted">{item}</p>
-          </div>
-        ))}
-      </div>
-    </Card>
+    <div className="body-map" aria-label="背阔肌发力示意图">
+      <svg viewBox="0 0 118 178" role="img" aria-labelledby="muscleTitle">
+        <title id="muscleTitle">背阔肌用紫色高亮</title>
+        <defs>
+          <linearGradient id="torso" x1="0" y1="0" x2="0" y2="1">
+            <stop stopColor="#ffffff" />
+            <stop offset="1" stopColor="#ede7ff" />
+          </linearGradient>
+          <linearGradient id="lat" x1="0" y1="0" x2="1" y2="1">
+            <stop stopColor="#8b72ee" />
+            <stop offset="1" stopColor="#6442d6" />
+          </linearGradient>
+        </defs>
+        <circle cx="59" cy="24" r="15" fill="url(#torso)" stroke="#d9cff9" strokeWidth="2" />
+        <path d="M43 43 Q59 35 75 43 L84 103 Q79 137 59 151 Q39 137 34 103 Z" fill="url(#torso)" stroke="#d9cff9" strokeWidth="2" />
+        <path d="M40 61 C28 74 22 96 24 123 C36 118 45 99 50 75 Z" fill="url(#lat)" opacity="0.96" />
+        <path d="M78 61 C90 74 96 96 94 123 C82 118 73 99 68 75 Z" fill="url(#lat)" opacity="0.96" />
+        <path d="M39 48 C28 58 19 77 17 101" fill="none" stroke="#c8b3fd" strokeWidth="8" strokeLinecap="round" opacity="0.78" />
+        <path d="M79 48 C90 58 99 77 101 101" fill="none" stroke="#c8b3fd" strokeWidth="8" strokeLinecap="round" opacity="0.78" />
+        <path d="M50 151 L45 174 M68 151 L73 174" stroke="#d9cff9" strokeWidth="8" strokeLinecap="round" />
+        <path d="M48 75 C54 83 64 83 70 75" fill="none" stroke="#fff" strokeWidth="2.4" opacity="0.82" />
+        <path d="M31 76 C36 72 42 70 49 70 M87 76 C82 72 76 70 69 70" fill="none" stroke="#fff" strokeWidth="2" opacity="0.56" />
+      </svg>
+      <span className="body-label">背阔肌发力</span>
+    </div>
   );
 }
 
@@ -55,68 +68,63 @@ export function ExercisePage() {
 
   return (
     <AppShell showNav={false}>
-      <TopBar title="动作教程" />
+      <TopBar title={exercise?.name_cn ?? "动作教程"} />
       {isLoading || !exercise ? (
-        <Card className="py-10 text-center text-sm font-semibold text-muted">小铁正在整理教程...</Card>
+        <Card className="py-10 text-center text-sm font-semibold text-[var(--muted)]">小铁正在整理教程...</Card>
       ) : (
-        <section className="space-y-4 pb-24">
-          <Card className="overflow-hidden border-ink bg-ink p-0 text-white">
-            <div className="bg-[linear-gradient(135deg,#d7ff3f_0%,#4bd8a1_52%,#146b7a_100%)] p-4">
-              <div className="flex h-36 items-center justify-center rounded-[8px] bg-ink/85">
-                <div className="flex items-center gap-4 text-acid">
-                  <Dumbbell size={52} />
-                  <div>
-                    <p className="text-xs font-bold text-white/65">示意画面</p>
-                    <p className="mt-1 text-sm font-black text-white">{exercise.media_hint}</p>
-                  </div>
-                </div>
+        <section className="pb-4">
+          <section className="hero-machine">
+            <p className="kicker">小白动作教程</p>
+            <h1>先调稳，再慢慢做。</h1>
+            <div className="machine-illo" aria-hidden="true" />
+          </section>
+
+          <div className="tag-row mt-3">
+            <Tag>{exercise.difficulty === "beginner" ? "新手友好" : exercise.difficulty}</Tag>
+            <Tag>{exercise.default_sets} 组</Tag>
+            <Tag>每组 {exercise.default_reps}</Tag>
+          </div>
+
+          <section className="lesson-strip muscle-lesson">
+            <BodyMap />
+            <div>
+              <h2 className="open-title">1 练哪里</h2>
+              <p className="open-copy">{exercise.beginner_explanation}</p>
+              <div className="muscle-callouts" aria-label="发力说明">
+                <div className="muscle-callout"><span className="muscle-dot" /><span>主发力：{exercise.target_body_parts_beginner[0] ?? "目标肌群"}</span></div>
+                <div className="muscle-callout"><span className="muscle-dot assist" /><span>辅助：先稳住动作，不抢重量</span></div>
               </div>
             </div>
-            <div className="p-4">
-              <div className="mb-3 flex flex-wrap gap-2">
-                <Tag tone="green">{exercise.difficulty === "beginner" ? "新手友好" : exercise.difficulty}</Tag>
-                <Tag tone="blue">{exercise.default_sets} 组</Tag>
-                <Tag tone="blue">每组 {exercise.default_reps}</Tag>
-              </div>
-              <h1 className="text-2xl font-black">{exercise.name_cn}</h1>
-              <p className="mt-2 text-sm font-semibold leading-6 text-white/72">{exercise.beginner_explanation}</p>
-            </div>
-          </Card>
+          </section>
 
-          <Card>
-            <h2 className="mb-3 text-base font-black">练哪里</h2>
-            <div className="flex flex-wrap gap-2">
-              {exercise.target_body_parts_beginner.map((part) => (
-                <Tag key={part} tone="green">{part}</Tag>
-              ))}
-            </div>
-          </Card>
+          <section className="lesson">
+            <h2>2 怎么调</h2>
+            <ul>
+              {exercise.setup_tips.map((tip) => <li key={tip}>{tip}</li>)}
+            </ul>
+          </section>
 
-          <ListSection title="怎么调" items={exercise.setup_tips} />
-          <ListSection title="怎么做" items={exercise.steps} tone="safe" />
-          <ListSection title="常见错误" items={exercise.common_mistakes} tone="warning" />
+          <section className="lesson">
+            <h2>3 怎么做</h2>
+            <ol>
+              {exercise.steps.map((step) => <li key={step}>{step}</li>)}
+            </ol>
+          </section>
 
-          <Card className="border-coral/30 bg-coral/10">
-            <div className="mb-3 flex items-center gap-2">
-              <ShieldAlert className="text-coral" size={20} />
-              <h2 className="text-base font-black">安全提醒</h2>
-            </div>
-            <div className="space-y-2">
-              {exercise.safety_notes.map((note) => (
-                <p key={note} className="text-sm font-semibold leading-6 text-muted">{note}</p>
-              ))}
-            </div>
-          </Card>
+          <section className="lesson">
+            <h2>4 常见错误</h2>
+            <ul className="danger-list">
+              {exercise.common_mistakes.map((mistake) => <li key={mistake}>{mistake}</li>)}
+            </ul>
+          </section>
 
-          <XiaotieTip>你不需要一下子做得很重。先把动作做稳，小铁会帮你慢慢记录和调整。</XiaotieTip>
+          <XiaotieTip tone="warning">{exercise.safety_notes.join(" ")}</XiaotieTip>
 
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
-            <div className="mx-auto grid max-w-[480px] grid-cols-2 gap-2">
-              <Button variant="secondary" icon={alreadyInPlan ? <CheckCircle2 size={18} /> : <Plus size={18} />} onClick={() => exercise && addExercise(exercise.exercise_id)}>
-                {alreadyInPlan ? "已在计划" : "加入今日训练"}
-              </Button>
-              <Button onClick={start}>开始训练</Button>
-            </div>
+          <div className="action-row sticky-action">
+            <Button variant="secondary" icon={alreadyInPlan ? <CheckCircle2 size={18} /> : <Plus size={18} />} onClick={() => addExercise(exercise.exercise_id)}>
+              {alreadyInPlan ? "已在计划" : "加入训练"}
+            </Button>
+            <Button onClick={start}>开始训练</Button>
           </div>
         </section>
       )}

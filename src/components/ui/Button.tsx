@@ -8,16 +8,16 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary: "bg-ink text-acid shadow-button active:translate-y-0.5",
-  secondary: "bg-white text-ink border border-line active:translate-y-0.5",
-  ghost: "bg-transparent text-ink active:bg-black/5",
-  danger: "bg-coral text-white shadow-button active:translate-y-0.5"
+  primary: "primary-btn",
+  secondary: "secondary-btn",
+  ghost: "text-[var(--primary)] bg-transparent",
+  danger: "danger-btn"
 };
 
 export function Button({ className = "", variant = "primary", icon, children, ...props }: ButtonProps) {
   return (
     <button
-      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-[8px] px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${variantClass[variant]} ${className}`}
+      className={`${variantClass[variant]} disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
       {...props}
     >
       {icon}

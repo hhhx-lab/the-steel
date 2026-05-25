@@ -11,13 +11,11 @@ type SegmentedControlProps<T extends string> = {
 
 export function SegmentedControl<T extends string>({ value, options, onChange }: SegmentedControlProps<T>) {
   return (
-    <div className="grid rounded-[8px] border border-line bg-white p-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div className="segmented" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
       {options.map((option) => (
         <button
           key={option.value}
-          className={`min-h-10 rounded-[6px] px-3 text-sm font-semibold transition ${
-            value === option.value ? "bg-ink text-acid" : "text-muted"
-          }`}
+          className={value === option.value ? "active" : ""}
           type="button"
           onClick={() => onChange(option.value)}
         >
