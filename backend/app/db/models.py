@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -99,7 +99,7 @@ class WorkoutSession(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id"), nullable=False)
     plan_id: Mapped[str] = mapped_column(ForeignKey("workout_plans.plan_id"), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="in_progress")
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
 
     plan: Mapped[WorkoutPlan] = relationship(back_populates="sessions")
     records: Mapped[list["SetRecord"]] = relationship(back_populates="session")
@@ -117,7 +117,7 @@ class SetRecord(Base):
     reps: Mapped[int] = mapped_column(Integer, nullable=False)
     rpe_text: Mapped[str | None] = mapped_column(String(80), nullable=True)
     user_note: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
 
     session: Mapped[WorkoutSession] = relationship(back_populates="records")
     exercise: Mapped[Exercise] = relationship(back_populates="records")
