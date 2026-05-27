@@ -3,6 +3,7 @@ dist/
 .DS_Store
 .env
 .env.local
+.codex/
 .vite/
 coverage/
 *.tsbuildinfo
@@ -10,3 +11,10 @@ coverage/
 .playwright-mcp/
 tiezi-opened.png
 铁子/
+backend/.venv/
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/tiezi.db
+__pycache__/
+*.py[cod]
