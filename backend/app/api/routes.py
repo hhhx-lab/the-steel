@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
+from app.ai.provider import AIProvider, get_ai_provider
 from app.db.session import get_db
 from app.schemas import (
     AddExerciseRequest,
@@ -8,9 +9,11 @@ from app.schemas import (
     ExerciseResponse,
     SaveWorkoutLogRequest,
     SaveWorkoutLogResponse,
+    ScanResultResponse,
     UserProfileResponse,
     WorkoutPlanResponse,
 )
+from app.services.ai_normalization import scan_equipment_with_ai
 from app.services.workout_repository import (
     add_exercise_to_plan,
     get_exercise_detail,
@@ -41,6 +44,24 @@ def read_today_workout(db: Session = Depends(get_db)):
 @router.get("/api/exercises/{exercise_id}", response_model=ExerciseResponse, tags=["exercise"])
 def read_exercise_detail(exercise_id: str, db: Session = Depends(get_db)):
     return get_exercise_detail(db, exercise_id)
+
+
+@router.post("/api/equipment/scan", response_model=ScanResultResponse, tags=["equipment"])
+async def scan_equipment(
+    request: Request,
+    db: Session = Depends(get_db),
+    provider: AIProvider = Depends(get_ai_provider),
+):
+    content_type = request.headers.get("content-type", "")
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form()
+        upload = form.get("image")
+        image_bytes = await upload.read() if hasattr(upload, "read") else None
+        mime_type = getattr(upload, "content_type", None)
+        return scan_equipment_with_ai(db, provider, image_bytes=image_bytes, mime_type=mime_type)
+
+    body = await request.json()
+    return scan_equipment_with_ai(db, provider, image_url=body.get("image_url"))
 
 
 @router.post("/api/workout/add-exercise", response_model=AddExerciseResponse, tags=["workout"])
