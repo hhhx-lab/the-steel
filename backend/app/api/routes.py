@@ -7,6 +7,8 @@ from app.schemas import (
     AddExerciseRequest,
     AddExerciseResponse,
     ExerciseResponse,
+    ParsedWorkoutLogResponse,
+    ParseWorkoutLogRequest,
     SaveWorkoutLogRequest,
     SaveWorkoutLogResponse,
     ScanResultResponse,
@@ -14,6 +16,7 @@ from app.schemas import (
     WorkoutPlanResponse,
 )
 from app.services.ai_normalization import scan_equipment_with_ai
+from app.services.log_parsing import parse_workout_log_with_ai
 from app.services.workout_repository import (
     add_exercise_to_plan,
     get_exercise_detail,
@@ -77,6 +80,21 @@ def add_exercise(payload: AddExerciseRequest, db: Session = Depends(get_db)):
         exercise_id=link.exercise_id,
         position=link.position,
         message="已加入今日训练，小铁会按顺序带你练。",
+    )
+
+
+@router.post("/api/workout/log/parse", response_model=ParsedWorkoutLogResponse, tags=["workout"])
+def parse_workout_log(
+    payload: ParseWorkoutLogRequest,
+    db: Session = Depends(get_db),
+    provider: AIProvider = Depends(get_ai_provider),
+):
+    return parse_workout_log_with_ai(
+        db,
+        provider,
+        text=payload.text,
+        session_id=payload.session_id,
+        fallback_exercise_id=payload.exercise_id,
     )
 
 
