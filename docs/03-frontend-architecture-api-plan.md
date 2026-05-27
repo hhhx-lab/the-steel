@@ -307,6 +307,30 @@ type SetRecord = {
 
 ## 6. 接口计划
 
+### 6.0 当前后端实现状态
+
+本仓库已新增独立 FastAPI 后端，位置为 `backend/`。前端页面仍只通过 `src/services/tieziApi.ts` 调用业务 API，不直接访问后端 URL。
+
+本地联调方式：
+
+```bash
+cd backend
+uv sync
+cp .env.example .env
+uv run alembic upgrade head
+uv run python -m app.cli
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+前端 `.env.local`：
+
+```text
+VITE_USE_REAL_API=true
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+后端默认 SQLite，部署或长期运行可通过 `DATABASE_URL=postgresql+psycopg://...` 切换 Postgres。真实 AI 由后端 OpenAI adapter 负责，自动化测试使用显式 stub；真实联调需要配置 `OPENAI_API_KEY`。
+
 ### 6.1 当前业务 API 方法
 
 | 方法 | 当前来源 | 后续真实接口 |
@@ -546,4 +570,3 @@ VITE_API_BASE_URL=http://localhost:3000
 3. 优先调试 `realApi.ts` 的响应适配。
 4. 如果后端字段与当前类型不同，先更新 `src/types`，再更新 `realApi.ts`。
 5. 页面层原则上不直接改接口细节。
-
