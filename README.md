@@ -1,95 +1,438 @@
-# 铁子
+<div align="center">
 
-面向健身小白的 AI 健身房上手 App。
+# Tiezi
 
-核心口号：
+**A mobile-first AI gym onboarding app for people who do not know where to start.**
 
-> 拍一下器械，小铁带你练。
+![Web App](https://img.shields.io/badge/Web_App-React_PWA-2563eb)
+![Backend](https://img.shields.io/badge/Backend-FastAPI-059669)
+![Database](https://img.shields.io/badge/Database-SQLite_Postgres--ready-7c3aed)
+![AI](https://img.shields.io/badge/AI-OpenAI_Adapter-c2410c)
+![Workflow](https://img.shields.io/badge/Workflow-Scan_To_Log-111827)
 
-## 本地运行
+`npm run dev` + `cd backend && uv run uvicorn app.main:app --reload --port 8000`
 
-前端：
+</div>
+
+> Point your phone at a gym machine, let Tiezi explain it, add it to today's workout, and log the first set without turning fitness into homework.
+
+Tiezi is built for the most awkward moment in the gym: standing in front of a machine, not knowing what it is, how to adjust it, what it trains, or whether you should use it today.
+
+This repository turns that moment into a working product loop: a React mobile PWA, a FastAPI backend, SQL persistence, seeded beginner workout data, and AI adapters for equipment recognition and natural-language workout logging.
+
+## The 30-Second Version
+
+| You have | Tiezi gives you |
+|---|---|
+| A beginner in a gym | A clear, guided first workout loop |
+| A photo of equipment | Beginner-safe equipment recognition and exercise suggestions |
+| A default workout plan | Persisted plan data with stable local IDs |
+| A messy workout note | Structured set records that still require user confirmation |
+| No backend during demo | Frontend mock mode that runs the whole MVP |
+| A real backend available | FastAPI real API mode with SQL persistence |
+
+## Product Promise
+
+Tiezi is not a full fitness super-app. It is intentionally tighter:
+
+```text
+Open app
+  |
+  v
+Skip heavy onboarding
+  |
+  v
+Scan gym equipment
+  |
+  v
+Understand what it is
+  |
+  v
+Read beginner instructions
+  |
+  v
+Add to today's workout
+  |
+  v
+Train and log sets
+```
+
+The first phase is designed to make the gym feel usable for beginners before it tries to become a complete coaching platform.
+
+## Capability Matrix
+
+| Capability | What it does | Why it matters |
+|---|---|---|
+| Mobile PWA flow | Ships welcome, home, scan, result, exercise, workout, log, and profile screens | The core product can be tried from a browser immediately |
+| Mock-first frontend | Runs the whole MVP without a backend | Fast demo path and safer UI iteration |
+| Real API switch | Uses `VITE_USE_REAL_API` to choose mock or backend services | Keeps page code clean and backend-ready |
+| FastAPI contract | Implements the current frontend endpoint map | Lets the React app switch to real data without a page rewrite |
+| SQL persistence | Stores profile, equipment, exercises, workout plans, sessions, and set records | Makes workout changes survive backend reads |
+| Seeded beginner data | Provides stable IDs such as `user_local_001` and `plan_beginner_day_1` | Keeps frontend, tests, and demos predictable |
+| AI equipment scan | Normalizes real provider output into `ScanResult` | Gives beginners a controlled recognition experience |
+| AI workout parsing | Converts workout notes into editable set records | Keeps logging light while requiring user confirmation |
+| Safety language | Detects pain, discomfort, old injury, and strain language | Avoids medical diagnosis and nudges users to stop and seek professional help |
+| Test stubs | Tests AI flows without real credentials | Keeps CI and local verification deterministic |
+
+## Demo Preview
+
+The app is optimized for a compact mobile product surface:
+
+```text
+/welcome
+  "I do not know this machine" -> scan
+
+/scan
+  camera or image upload -> recognition state
+
+/scan/result
+  machine name, beginner name, trained areas, confidence, next action
+
+/exercise/:exerciseId
+  setup tips, steps, common mistakes, safety notes
+
+/workout/session
+  checklist, current exercise, progress, record action
+
+/workout/log
+  natural-language parse or manual set editor -> user confirmation -> save
+```
+
+## Architecture
+
+```text
+React pages
+  |
+  v
+src/services/tieziApi.ts
+  |
+  |-- VITE_USE_REAL_API=false --> src/services/mockApi.ts
+  |
+  `-- VITE_USE_REAL_API=true  --> src/services/realApi.ts
+                                      |
+                                      v
+                                FastAPI backend
+                                      |
+                                      |-- SQLAlchemy + Alembic
+                                      |-- SQLite local default
+                                      |-- Postgres-ready DATABASE_URL
+                                      `-- OpenAI adapter
+```
+
+The frontend does not call backend URLs from page components. All business calls go through the service facade, so the app can move between mock and real API mode without rewriting the UI.
+
+## Tech Stack
+
+### Frontend
+
+| Layer | Stack |
+|---|---|
+| Framework | React 18 |
+| Build | Vite |
+| Language | TypeScript |
+| Routing | React Router |
+| State | Zustand |
+| Data boundary | TanStack Query plus service facade |
+| Forms | React Hook Form |
+| Validation | Zod |
+| Icons | lucide-react |
+| PWA | vite-plugin-pwa |
+| Styling | Tailwind CSS plus local UI components |
+
+### Backend
+
+| Layer | Stack |
+|---|---|
+| Framework | FastAPI |
+| Language | Python 3.11+ |
+| Environment | uv |
+| ORM | SQLAlchemy |
+| Migrations | Alembic |
+| Database | SQLite by default, Postgres-ready |
+| AI | OpenAI adapter |
+| Tests | pytest |
+
+## Quick Start: Frontend Mock Mode
+
+Use this when you want the fastest visual demo. No backend and no AI key required.
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-默认启动地址：
+Use this frontend environment:
+
+```text
+VITE_USE_REAL_API=false
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+Open:
 
 ```text
 http://localhost:5173/
 ```
 
-后端：
+## Quick Start: Full Stack Real API Mode
+
+Start the backend:
 
 ```bash
 cd backend
-uv sync
+uv sync --python 3.12
 cp .env.example .env
 uv run alembic upgrade head
 uv run python -m app.cli
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-后端默认使用 SQLite：`backend/tiezi.db`。
+Check the backend:
 
-## 已实现范围
+```bash
+curl http://localhost:8000/health
+```
 
-- React + TypeScript + Vite + PWA
-- 移动端优先页面框架
-- 欢迎页、首页、拍器械页、识别结果页、动作教程页、训练中页、记录页、我的页
-- Zustand 本地业务状态
-- TanStack Query 基础查询层
-- 前后端分离 API 门面：默认 mock，后续可切真实接口
-- Mock 器械识别、动作库、今日训练和一句话记录解析
-- 无真实后端时可完整演示核心闭环
-- FastAPI 后端、SQL 持久化、OpenAI adapter 和前端 real API 合同
+Expected response:
 
-## 文档
+```json
+{"status":"ok","service":"tiezi-backend"}
+```
 
-- `docs/01-page-design-and-flow.md`：页面设计与整体流转
-- `docs/02-page-functional-spec.md`：页面功能、组件交互与接口说明
-- `docs/03-frontend-architecture-api-plan.md`：前端架构、技术栈与接口计划
+Then start the frontend from the repository root:
 
-## 接口模式
+```bash
+cat > .env.local <<'EOF'
+VITE_USE_REAL_API=true
+VITE_API_BASE_URL=http://localhost:8000
+EOF
 
-默认使用 mock：
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:5173/home
+```
+
+If port `8000` is already in use, run the backend on another port:
+
+```bash
+cd backend
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+Then set:
+
+```text
+VITE_API_BASE_URL=http://localhost:8001
+```
+
+## Environment Variables
+
+### Frontend
 
 ```text
 VITE_USE_REAL_API=false
-```
-
-后端完成后可以在 `.env.local` 中切换：
-
-```text
-VITE_USE_REAL_API=true
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-后端真实 AI 配置写在 `backend/.env`：
+### Backend
 
 ```text
+APP_NAME=Tiezi Backend
+APP_ENV=local
+DEBUG=true
+FRONTEND_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+
+DATABASE_URL=sqlite:///./tiezi.db
+
 AI_PROVIDER=openai
-OPENAI_API_KEY=你的 OpenAI API Key
+OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4.1-mini
+AI_REQUEST_TIMEOUT_SECONDS=30
 AI_TEST_MODE=false
 ```
 
-没有真实 key 时，后端的自动化测试使用显式 stub；本地接口会返回受控的低置信度/需手动确认响应，前端不会崩溃。
+For Postgres-compatible environments:
 
-## 真实 AI 手工联调
+```text
+DATABASE_URL=postgresql+psycopg://user:password@host:5432/tiezi
+```
 
-1. 在 `backend/.env` 填入 `OPENAI_API_KEY`。
-2. 启动后端和前端 real API 模式。
-3. 在 `/scan` 上传器械图片或使用图片 URL，确认返回 `recognized/confidence/equipment/need_more_photo`。
-4. 在 `/workout/log` 输入一句话记录，确认先展示解析结果，再由用户保存。
+Do not commit `.env`, `.env.local`, API keys, local database files, or virtual environments.
 
-OpenAI adapter 使用 Responses API 的图片输入和结构化输出能力，后端会把 AI 输出归一化为前端 `ScanResult` 与 `ParsedWorkoutLog`。
+## API Contract
 
-## 验证
+The backend implements the endpoints already declared by `src/services/endpoints.ts`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/user/profile` | Return the local beginner user profile |
+| GET | `/api/workout/today` | Return today's beginner workout plan |
+| GET | `/api/exercises/{exercise_id}` | Return exercise tutorial details |
+| POST | `/api/equipment/scan` | Scan equipment from image URL or multipart upload |
+| POST | `/api/workout/add-exercise` | Add an exercise to today's workout |
+| POST | `/api/workout/log/parse` | Parse a natural-language workout note |
+| POST | `/api/workout/log` | Save confirmed set records |
+
+### Equipment Scan: JSON URL
+
+```json
+{
+  "image_url": "https://example.com/equipment.jpg",
+  "user_id": "user_local_001",
+  "today_plan_id": "plan_beginner_day_1"
+}
+```
+
+### Equipment Scan: Multipart
+
+```text
+image: Blob
+user_id: user_local_001
+today_plan_id: plan_beginner_day_1
+```
+
+### Workout Log Parse
+
+```json
+{
+  "user_id": "user_local_001",
+  "session_id": "session_local_001",
+  "exercise_id": "ex_lat_pulldown",
+  "text": "Lat pulldown, three sets, 20 kg, 10, 10, 8. Last set felt hard."
+}
+```
+
+Parsed results are not saved automatically. The user must confirm or edit the set records first, then call `/api/workout/log`.
+
+## Seed Data
+
+The backend seed command installs a stable MVP dataset:
+
+| Entity | Seeded values |
+|---|---|
+| User | `user_local_001` |
+| Plan | `plan_beginner_day_1` |
+| Session | `session_local_001` |
+| Equipment | lat pulldown, seated row, chest press, leg press, treadmill, unknown |
+| Exercises | treadmill warmup, lat pulldown, chest press, seated row, leg press, plank |
+
+Reset the local SQLite database:
+
+```bash
+cd backend
+rm -f tiezi.db
+uv run alembic upgrade head
+uv run python -m app.cli
+```
+
+## Repository Layout
+
+```text
+.
+|-- README.md
+|-- package.json
+|-- vite.config.ts
+|-- src/
+|   |-- app/
+|   |-- components/
+|   |-- data/
+|   |-- pages/
+|   |-- services/
+|   |-- stores/
+|   `-- types/
+|-- backend/
+|   |-- alembic/
+|   |-- app/
+|   |   |-- ai/
+|   |   |-- api/
+|   |   |-- core/
+|   |   |-- db/
+|   |   |-- schemas/
+|   |   `-- services/
+|   |-- tests/
+|   |-- .env.example
+|   `-- pyproject.toml
+|-- docs/
+|   |-- 01-page-design-and-flow.md
+|   |-- 02-page-functional-spec.md
+|   `-- 03-frontend-architecture-api-plan.md
+`-- openspec/
+    `-- changes/
+        `-- add-fastapi-backend/
+```
+
+## Verification
+
+Frontend build:
 
 ```bash
 npm run build
-cd backend && uv run pytest
 ```
+
+Backend tests:
+
+```bash
+cd backend
+uv run pytest
+```
+
+OpenSpec validation:
+
+```bash
+openspec validate add-fastapi-backend --strict --no-interactive
+```
+
+Suggested full-stack smoke test:
+
+```text
+1. Start the backend.
+2. Start the frontend in real API mode.
+3. Open /home and confirm today's workout loads from FastAPI.
+4. Open /scan and submit an image or image URL.
+5. Open /workout/log and parse a natural-language note.
+6. Confirm records are shown before saving.
+```
+
+## What Makes It Different
+
+| Usual beginner fitness app | Tiezi |
+|---|---|
+| Starts with heavy onboarding | Lets users skip straight to the gym-floor problem |
+| Assumes users know equipment names | Starts from a photo or upload |
+| Hides backend readiness behind mocks | Keeps mock mode and real API mode explicit |
+| Treats AI output as final | Normalizes AI output and keeps user confirmation in the loop |
+| Mixes medical-sounding advice into coaching | Uses beginner-safe safety language and avoids diagnosis |
+
+## Boundaries
+
+Tiezi is an MVP, not a medical product, not a personal trainer replacement, and not a full fitness management platform.
+
+The app currently does not include:
+
+- login or multi-user authentication;
+- payment, coaching marketplace, or community features;
+- diet management;
+- video posture correction;
+- medical diagnosis or rehabilitation guidance;
+- production deployment hardening.
+
+When the user mentions pain, discomfort, an old injury, or a strain, the backend returns a safety warning that tells the user to stop training and consult a professional. It does not diagnose, treat, or prescribe.
+
+## Documentation
+
+| Document | Purpose |
+|---|---|
+| `docs/01-page-design-and-flow.md` | Page map and user flow |
+| `docs/02-page-functional-spec.md` | Page-level behavior, components, and interactions |
+| `docs/03-frontend-architecture-api-plan.md` | Frontend architecture and API plan |
+| `backend/README.md` | Backend-specific setup and API notes |
+| `openspec/changes/add-fastapi-backend/` | OpenSpec proposal, design, specs, and tasks |
+
+## Star This If
+
+Star this repo if you want a small but serious reference for building an AI-assisted, mobile-first product loop with a clean frontend/backend split, mockable UI flows, SQL persistence, and provider-isolated AI features.
