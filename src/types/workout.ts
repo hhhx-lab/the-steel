@@ -24,6 +24,10 @@ export type WorkoutPlan = {
   subtitle: string;
   intensity: "low" | "medium" | "high";
   exercises: WorkoutPlanExercise[];
+  today_focus_part?: string;
+  today_focus_parts?: string[];
+  status?: "draft" | "confirmed" | "in_progress" | "completed" | "abandoned";
+  generated_reason?: string;
 };
 
 export type SetRecord = {
@@ -34,6 +38,27 @@ export type SetRecord = {
   weight: number;
   weight_unit: "kg";
   reps: number;
+  duration_minutes?: number;
+  distance_km?: number;
   rpe_text?: string;
   user_note?: string;
+};
+
+export type WorkoutSession = {
+  session_id: string;
+  user_id: string;
+  daily_workout_plan_id: string;
+  status: Exclude<WorkoutSessionStatus, "not_started" | "logging">;
+  current_exercise_id?: string;
+  started_at: string;
+  ended_at?: string | null;
+  last_feedback?: string | null;
+};
+
+export type WorkoutSessionSummary = WorkoutSession & {
+  set_count: number;
+  total_volume: number;
+  duration_minutes: number;
+  exercise_ids: string[];
+  body_parts: string[];
 };

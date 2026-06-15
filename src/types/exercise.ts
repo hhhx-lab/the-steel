@@ -14,4 +14,6 @@ export type Exercise = {
   default_sets: number;
   default_reps: string;
   media_hint: string;
+  video_url?: string;
+  thumbnail_url?: string;
 };

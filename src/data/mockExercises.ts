@@ -14,7 +14,9 @@ export const mockExercises: Exercise[] = [
     safety_notes: ["如果头晕或胸闷，先停下来休息。"],
     default_sets: 1,
     default_reps: "5 分钟",
-    media_hint: "低速跑步机热身"
+    media_hint: "低速跑步机热身",
+    video_url: "/assets/videos/ex_treadmill_warmup.gif",
+    thumbnail_url: "/assets/videos/ex_treadmill_warmup.jpg"
   },
   {
     exercise_id: "ex_lat_pulldown",
@@ -29,7 +31,9 @@ export const mockExercises: Exercise[] = [
     safety_notes: ["如果肩膀或手肘疼痛，先停止训练。小铁只能提供入门建议，不能替代专业教练或医生判断。"],
     default_sets: 3,
     default_reps: "10",
-    media_hint: "坐姿下拉器械，双手握横杆"
+    media_hint: "坐姿下拉器械，双手握横杆",
+    video_url: "/assets/videos/ex_lat_pulldown.gif",
+    thumbnail_url: "/assets/videos/ex_lat_pulldown.jpg"
   },
   {
     exercise_id: "ex_chest_press",
@@ -44,7 +48,9 @@ export const mockExercises: Exercise[] = [
     safety_notes: ["如果肩前侧疼，先减轻重量或停止。"],
     default_sets: 3,
     default_reps: "10",
-    media_hint: "坐姿推胸器械"
+    media_hint: "坐姿推胸器械",
+    video_url: "/assets/videos/ex_chest_press.gif",
+    thumbnail_url: "/assets/videos/ex_chest_press.jpg"
   },
   {
     exercise_id: "ex_seated_row",
@@ -59,7 +65,9 @@ export const mockExercises: Exercise[] = [
     safety_notes: ["腰不舒服时先停止，不要硬撑。"],
     default_sets: 3,
     default_reps: "10",
-    media_hint: "坐姿划船器械"
+    media_hint: "坐姿划船器械",
+    video_url: "/assets/videos/ex_seated_row.gif",
+    thumbnail_url: "/assets/videos/ex_seated_row.jpg"
   },
   {
     exercise_id: "ex_leg_press",
@@ -74,7 +82,9 @@ export const mockExercises: Exercise[] = [
     safety_notes: ["膝盖或腰疼时先停止训练。"],
     default_sets: 3,
     default_reps: "10",
-    media_hint: "腿举机"
+    media_hint: "腿举机",
+    video_url: "/assets/videos/ex_leg_press.gif",
+    thumbnail_url: "/assets/videos/ex_leg_press.jpg"
   },
   {
     exercise_id: "ex_plank",
@@ -89,7 +99,9 @@ export const mockExercises: Exercise[] = [
     safety_notes: ["腰疼时先停，不要硬撑时间。"],
     default_sets: 2,
     default_reps: "20 秒",
-    media_hint: "垫上核心稳定动作"
+    media_hint: "垫上核心稳定动作",
+    video_url: "/assets/videos/ex_plank.gif",
+    thumbnail_url: "/assets/videos/ex_plank.jpg"
   }
 ];
 

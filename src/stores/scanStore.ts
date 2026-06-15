@@ -17,7 +17,7 @@ type ScanState = {
   error?: string;
   setStatus: (status: ScanStatus) => void;
   setImagePreview: (imagePreview?: string) => void;
-  setResult: (result: ScanResult) => void;
+  setResult: (result?: ScanResult | null) => void;
   setError: (error?: string) => void;
   resetScan: () => void;
 };
@@ -30,11 +30,17 @@ export const useScanStore = create<ScanState>((set) => ({
   setStatus: (status) => set({ status }),
   setImagePreview: (imagePreview) => set({ imagePreview }),
   setResult: (result) =>
-    set({
-      lastResult: result,
-      status: result.confidence < 0.65 ? "lowConfidence" : "success",
-      error: undefined
-    }),
+    set(result
+      ? {
+        lastResult: result,
+        status: result.confidence < 0.65 ? "lowConfidence" : "success",
+        error: undefined
+      }
+      : {
+        lastResult: undefined,
+        status: "idle",
+        error: undefined
+      }),
   setError: (error) => set({ error, status: "failed" }),
   resetScan: () =>
     set({

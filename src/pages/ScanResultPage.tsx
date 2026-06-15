@@ -1,11 +1,12 @@
 import { HelpCircle, RotateCcw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
 import { TopBar } from "../components/layout/TopBar";
 import { Button } from "../components/ui/Button";
 import { XiaotieTip } from "../features/xiaotie/XiaotieTip";
-import { addExerciseToWorkout } from "../services/tieziApi";
+import { addExerciseToWorkout, createWorkoutSession, submitScanFeedback } from "../services/tieziApi";
 import { useScanStore } from "../stores/scanStore";
 import { useWorkoutStore } from "../stores/workoutStore";
 
@@ -17,11 +18,18 @@ function confidenceLabel(confidence: number) {
 
 export function ScanResultPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState<string>();
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [adding, setAdding] = useState(false);
   const result = useScanStore((state) => state.lastResult);
   const addExercise = useWorkoutStore((state) => state.addExercise);
   const startSession = useWorkoutStore((state) => state.startSession);
+  const plan = useWorkoutStore((state) => state.plan);
+  const setPlan = useWorkoutStore((state) => state.setPlan);
+  const setSession = useWorkoutStore((state) => state.setSession);
 
   if (!result) {
     return <Navigate to="/scan" replace />;
@@ -29,18 +37,51 @@ export function ScanResultPage() {
 
   const exercise = result.recommended_exercises[0];
   const isLowConfidence = result.confidence < 0.65;
+  const needsConfirmation = result.confidence < 0.8;
 
   const joinWorkout = async () => {
     if (!exercise || isLowConfidence) return;
     setAdding(true);
-    await addExerciseToWorkout(exercise.exercise_id);
-    addExercise(exercise.exercise_id);
-    startSession();
-    navigate("/workout/session");
+    try {
+      const response = await addExerciseToWorkout(exercise.exercise_id, plan.plan_id);
+      const nextPlan = response.plan ?? plan;
+      if (response.plan) {
+        setPlan(response.plan);
+        queryClient.setQueryData(["today-workout"], response.plan);
+      }
+      const session = await createWorkoutSession(nextPlan.plan_id, exercise.exercise_id);
+      setSession(session);
+      queryClient.setQueryData(["workout-session-current"], session);
+      startSession(exercise.exercise_id);
+      navigate("/workout/session");
+    } catch {
+      addExercise(exercise.exercise_id);
+      startSession(exercise.exercise_id);
+      navigate("/workout/session");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const submitFeedback = async () => {
+    setSubmittingFeedback(true);
+    try {
+      const response = await submitScanFeedback({
+        feedback: feedbackText || "用户认为本次识别不准确",
+        scan_result: result
+      });
+      setFeedbackMessage(response.message);
+      setFeedbackOpen(false);
+    } catch {
+      setFeedbackMessage("反馈已先记录在当前页面，后端暂时没连上。");
+      setFeedbackOpen(false);
+    } finally {
+      setSubmittingFeedback(false);
+    }
   };
 
   return (
-    <AppShell showNav={false}>
+    <AppShell>
       <TopBar
         title="识别结果"
         backTo="/scan"
@@ -63,6 +104,18 @@ export function ScanResultPage() {
               <span className="confidence">{confidenceLabel(result.confidence)}</span>
             </div>
           </section>
+
+          {needsConfirmation ? (
+            <section className="result-notice">
+              <div>
+                <p className="row-title">小铁还想再确认一下</p>
+                <p className="row-sub">这次画面可用，但置信度不高。你可以先确认器械名称，也可以重拍一张正面或说明牌。</p>
+              </div>
+              <button className="secondary-btn !min-h-[40px] !rounded-[14px] !px-3 text-xs" type="button" onClick={() => navigate("/scan")}>
+                重拍
+              </button>
+            </section>
+          ) : null}
 
           <div className="result-actions">
             <Button variant="secondary" onClick={() => navigate(`/exercise/${exercise.exercise_id}`)}>看怎么用</Button>
@@ -99,7 +152,13 @@ export function ScanResultPage() {
             </div>
           </section>
           <section className="low-result">
+            <p className="row-title">直接重拍会更准</p>
             <p className="open-copy">请再拍一张器械正面、说明牌或把手位置。低置信度时，小铁不会给出确定结论，也不会建议你按猜测开始练。</p>
+            <div className="retake-tips">
+              <span>拍完整器械</span>
+              <span>带上说明牌</span>
+              <span>避开人脸遮挡</span>
+            </div>
           </section>
           <Button className="full mt-4" onClick={() => navigate("/scan")}>重新拍</Button>
         </>
@@ -114,14 +173,17 @@ export function ScanResultPage() {
       <Button className="full mt-3" variant="secondary" icon={<HelpCircle size={18} />} onClick={() => setFeedbackOpen(true)}>
         识别不准？
       </Button>
+      {feedbackMessage ? <XiaotieTip tone="safe">{feedbackMessage}</XiaotieTip> : null}
 
       {feedbackOpen ? (
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="modal-sheet">
             <h2>告诉小铁哪里不准</h2>
             <p>比如：这其实是坐姿划船，不是高位下拉。</p>
-            <textarea className="field-control mt-3" placeholder="写下你的反馈" />
-            <Button className="full mt-3" onClick={() => setFeedbackOpen(false)}>提交反馈</Button>
+            <textarea className="field-control mt-3" placeholder="写下你的反馈" value={feedbackText} onChange={(event) => setFeedbackText(event.target.value)} />
+            <Button className="full mt-3" onClick={() => void submitFeedback()} disabled={submittingFeedback}>
+              {submittingFeedback ? "提交中..." : "提交反馈"}
+            </Button>
           </div>
         </div>
       ) : null}

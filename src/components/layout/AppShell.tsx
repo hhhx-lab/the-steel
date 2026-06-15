@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { FloatingTiezi } from "../../features/xiaotie/FloatingTiezi";
 import { BottomNav } from "./BottomNav";
 
 type AppShellProps = {
@@ -20,6 +21,7 @@ export function AppShell({ children, showNav = true, className = "" }: AppShellP
           </span>
         </div>
         <div className="screen-content">{children}</div>
+        {showNav ? <FloatingTiezi /> : null}
         {showNav ? <BottomNav /> : null}
       </div>
     </main>

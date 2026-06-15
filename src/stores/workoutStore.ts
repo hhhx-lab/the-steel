@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { findExercise } from "../data/mockExercises";
 import { mockWorkoutPlan } from "../data/mockWorkoutPlan";
-import type { SetRecord, WorkoutPlan, WorkoutSessionStatus } from "../types/workout";
+import type { SetRecord, WorkoutPlan, WorkoutPlanExercise, WorkoutSession, WorkoutSessionStatus } from "../types/workout";
 
 type WorkoutState = {
   session_id: string;
@@ -11,16 +11,49 @@ type WorkoutState = {
   currentExerciseId: string;
   records: SetRecord[];
   lastFeedback?: string;
-  startSession: () => void;
+  setPlan: (plan: WorkoutPlan) => void;
+  setSession: (session: WorkoutSession | null) => void;
+  startSession: (initialExerciseId?: string) => void;
   addExercise: (exerciseId: string) => void;
+  replaceExercise: (fromExerciseId: string, toExerciseId: string) => void;
+  configurePlan: (settings: Pick<WorkoutPlan, "duration_minutes" | "intensity">) => void;
+  generateTodayPlan: (settings: {
+    title: string;
+    subtitle: string;
+    duration_minutes: number;
+    intensity: WorkoutPlan["intensity"];
+    exercises: WorkoutPlanExercise[];
+  }) => void;
   setCurrentExercise: (exerciseId: string) => void;
   completeCurrentExercise: () => void;
+  endSession: () => void;
+  setRecords: (records: SetRecord[]) => void;
+  appendRecords: (records: SetRecord[], feedback?: string) => void;
   saveRecords: (records: SetRecord[], feedback?: string) => void;
   resetWorkout: () => void;
 };
 
 const clonePlan = () => JSON.parse(JSON.stringify(mockWorkoutPlan)) as WorkoutPlan;
 const firstExerciseId = mockWorkoutPlan.exercises[0]?.exercise_id ?? "ex_lat_pulldown";
+const setRecordKey = (record: SetRecord) => `${record.session_id}:${record.exercise_id}:${record.set_index}`;
+
+const upsertRecords = (existingRecords: SetRecord[], incomingRecords: SetRecord[]) => {
+  const records = [...existingRecords];
+  incomingRecords.forEach((incoming) => {
+    const existingIndex = records.findIndex((record) => setRecordKey(record) === setRecordKey(incoming));
+    if (existingIndex >= 0) {
+      const previous = records[existingIndex];
+      records[existingIndex] = {
+        ...previous,
+        ...incoming,
+        record_id: incoming.record_id || previous.record_id
+      };
+      return;
+    }
+    records.push(incoming);
+  });
+  return records;
+};
 
 export const useWorkoutStore = create<WorkoutState>()(
   persist(
@@ -32,17 +65,31 @@ export const useWorkoutStore = create<WorkoutState>()(
       records: [],
       lastFeedback: undefined,
 
-      startSession: () =>
+      setPlan: (plan) =>
+        set((state) => ({
+          plan,
+          currentExerciseId: plan.exercises.find((item) => item.status === "current")?.exercise_id ?? plan.exercises[0]?.exercise_id ?? state.currentExerciseId
+        })),
+
+      setSession: (session) =>
+        set((state) => ({
+          session_id: session?.session_id ?? "session_local_001",
+          status: session?.status ?? "not_started",
+          currentExerciseId: session?.current_exercise_id ?? state.currentExerciseId,
+          lastFeedback: session?.last_feedback ?? (session ? state.lastFeedback : undefined)
+        })),
+
+      startSession: (initialExerciseId) =>
         set((state) => ({
           status: "in_progress",
           plan: {
             ...state.plan,
             exercises: state.plan.exercises.map((item, index) => ({
               ...item,
-              status: item.status === "completed" ? "completed" : index === 0 ? "current" : item.status === "current" ? "current" : "pending"
+              status: item.exercise_id === (initialExerciseId ?? state.plan.exercises[0]?.exercise_id) || (!initialExerciseId && index === 0) ? "current" : "pending"
             }))
           },
-          currentExerciseId: state.currentExerciseId || state.plan.exercises[0]?.exercise_id || firstExerciseId
+          currentExerciseId: initialExerciseId ?? state.plan.exercises[0]?.exercise_id ?? state.currentExerciseId ?? firstExerciseId
         })),
 
       addExercise: (exerciseId) =>
@@ -72,6 +119,58 @@ export const useWorkoutStore = create<WorkoutState>()(
             lastFeedback: `${exercise.name_cn}已加入今日训练。`
           };
         }),
+
+      replaceExercise: (fromExerciseId, toExerciseId) =>
+        set((state) => {
+          const replacement = findExercise(toExerciseId);
+          const fromIndex = state.plan.exercises.findIndex((item) => item.exercise_id === fromExerciseId);
+          const fromItem = state.plan.exercises[fromIndex];
+          const filtered = state.plan.exercises.filter((item) => item.exercise_id !== fromExerciseId && item.exercise_id !== toExerciseId);
+          const replacementItem: WorkoutPlanExercise = {
+            exercise_id: replacement.exercise_id,
+            sets: replacement.default_sets,
+            reps: replacement.default_reps,
+            weight_strategy: "trial_based",
+            status: fromItem?.status ?? "pending"
+          };
+          const insertIndex = fromIndex >= 0 ? Math.min(fromIndex, filtered.length) : filtered.length;
+          return {
+            plan: {
+              ...state.plan,
+              exercises: [
+                ...filtered.slice(0, insertIndex),
+                replacementItem,
+                ...filtered.slice(insertIndex)
+              ]
+            },
+            currentExerciseId: state.currentExerciseId === fromExerciseId || replacementItem.status === "current" ? toExerciseId : state.currentExerciseId,
+            lastFeedback: `${replacement.name_cn}已替换进今日训练。`
+          };
+        }),
+
+      configurePlan: (settings) =>
+        set((state) => ({
+          plan: {
+            ...state.plan,
+            duration_minutes: settings.duration_minutes,
+            intensity: settings.intensity
+          }
+        })),
+
+      generateTodayPlan: (settings) =>
+        set((state) => ({
+          plan: {
+            ...state.plan,
+            title: settings.title,
+            subtitle: settings.subtitle,
+            duration_minutes: settings.duration_minutes,
+            intensity: settings.intensity,
+            exercises: settings.exercises
+          },
+          status: "not_started",
+          currentExerciseId: settings.exercises[0]?.exercise_id ?? state.currentExerciseId,
+          lastFeedback: "今日训练计划已生成，确认动作后就可以开始。"
+        })),
 
       setCurrentExercise: (exerciseId) =>
         set((state) => ({
@@ -108,12 +207,43 @@ export const useWorkoutStore = create<WorkoutState>()(
           };
         }),
 
-      saveRecords: (records, feedback) =>
+      endSession: () =>
+        set({
+          status: "abandoned",
+          lastFeedback: "已结束本次训练，已经记录的内容会保留在记录页里。"
+        }),
+
+      setRecords: (records) => set({ records }),
+
+      appendRecords: (records, feedback) =>
         set((state) => ({
-          records: [...state.records, ...records],
-          status: "in_progress",
-          lastFeedback: feedback ?? "收到，我帮你记好了。"
+          records: upsertRecords(state.records, records),
+          lastFeedback: feedback ?? state.lastFeedback
         })),
+
+      saveRecords: (records, feedback) =>
+        set((state) => {
+          const currentExerciseId = records[0]?.exercise_id ?? state.currentExerciseId;
+          const currentIndex = state.plan.exercises.findIndex((item) => item.exercise_id === currentExerciseId);
+          const nextPending = state.plan.exercises.findIndex((item, index) => index > currentIndex && item.status !== "completed");
+          const completed = currentIndex >= 0 && nextPending < 0;
+          const nextExerciseId = nextPending >= 0 ? state.plan.exercises[nextPending].exercise_id : state.currentExerciseId;
+
+          return {
+            records: upsertRecords(state.records, records),
+            status: completed ? "completed" : "in_progress",
+            currentExerciseId: nextExerciseId,
+            plan: {
+              ...state.plan,
+              exercises: state.plan.exercises.map((item, index) => {
+                if (index === currentIndex) return { ...item, status: "completed" };
+                if (!completed && index === nextPending) return { ...item, status: "current" };
+                return item.status === "current" ? { ...item, status: "pending" } : item;
+              })
+            },
+            lastFeedback: feedback ?? "这组记好了，动作也完成了。补口水，下一组继续稳住。"
+          };
+        }),
 
       resetWorkout: () =>
         set({
